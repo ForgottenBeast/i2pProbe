@@ -5,7 +5,13 @@ description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
+    "fastapi>=0.115.12",
     "observlib",
+    "opentelemetry-instrumentation-aiohttp-client>=0.55b1",
+    "opentelemetry-instrumentation-asyncio>=0.55b1",
+    "opentelemetry-instrumentation-fastapi>=0.55b1",
+    "prometheus-client>=0.22.0",
+    "uvicorn>=0.34.2",
 ]
 
 [project.scripts]
