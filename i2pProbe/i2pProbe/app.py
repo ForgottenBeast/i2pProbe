@@ -1,6 +1,5 @@
 import asyncio
 import aiohttp
-from aiohttp_socks import ProxyConnector
 from prometheus_client import generate_latest, CONTENT_TYPE_LATEST
 from observlib import traced
 from fastapi import FastAPI, Response
@@ -41,7 +40,7 @@ traced_conf = {
 
 
 async def collect_data(config):
-    session = aiohttp.ClientSession(connector=ProxyConnector.from_url(proxy_endpoint))
+    session = aiohttp.ClientSession(proxy = proxy_endpoint)
 
     while True:
         tasks = []
