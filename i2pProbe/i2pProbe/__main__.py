@@ -66,7 +66,7 @@ def run():
         sname,
         args.otel_server,
         args.pyroscope_server,
-        args.debug,
+        False,
     )
 
     [host, port] = args.bind_addr.split(":")

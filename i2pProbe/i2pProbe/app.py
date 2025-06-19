@@ -40,14 +40,14 @@ traced_conf = {
 
 
 async def collect_data(config):
-    session = aiohttp.ClientSession(proxy = proxy_endpoint)
+    session = aiohttp.ClientSession(proxy=proxy_endpoint)
 
     while True:
         tasks = []
         for site in config["eepsites"]:
             tasks.append(session.get(f"http://{site}"))
         await asyncio.gather(*tasks)
-        asyncio.sleep(scrape_interval_seconds)
+        await asyncio.sleep(scrape_interval_seconds)
 
 
 def get_app():
