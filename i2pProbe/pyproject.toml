@@ -1,0 +1,15 @@
+[project]
+name = "i2pProbe"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "observlib",
+]
+
+[project.scripts]
+i2pProbe = "i2pProbe:__main__.run"
+
+[tool.uv.sources]
+observlib = { git = "https://github.com/ForgottenBeast/observlib.git", subdirectory = "observlib" }
