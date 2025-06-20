@@ -71,10 +71,11 @@ async def collect_data(config):
     while True:
         with trace.get_tracer(service_name).start_as_current_span(__name__) as span:
             tasks = []
-            for site in config["eepsites"]:
-                tasks.append(ping_site(session, site))
-            span.add_event("starting scrape", attributes = {"sites":config["eepsites"]})
-            await asyncio.gather(*tasks)
+            if "eepsites" in config:
+                for site in config["eepsites"]:
+                    tasks.append(ping_site(session, site))
+                span.add_event("starting scrape", attributes = {"sites":config["eepsites"]})
+                await asyncio.gather(*tasks)
             await asyncio.sleep(scrape_interval_seconds)
 
 
