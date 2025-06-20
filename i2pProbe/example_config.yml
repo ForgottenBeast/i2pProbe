@@ -1,2 +1,3 @@
 eepsites:
-  - http://zzz.i2p
+  - addr: http://zzz.i2p
+    port: 80

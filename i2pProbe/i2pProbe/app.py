@@ -46,13 +46,13 @@ traced_conf = {
 }
 
 @traced(tracer  = service_name)
-async def ping_site(session, sitename):
+async def ping_site(session, site):
     span = trace.get_current_span()
     start = time.perf_counter()
     attrs = {"eepsite": sitename}
     span.add_event("querying site", attributes = attrs)
     try:
-        async with session.get(f"http://{sitename}/") as resp:
+        async with session.get(f'''http://{site["addr"]}:{site["port"]}/''') as resp:
             last_latency.set(time.perf_counter() - start, attributes=attrs)
             status_family = resp.status // 100
             if status_family == 2:
