@@ -9,6 +9,7 @@ from functools import lru_cache
 from logging import getLogger
 from .config import get_config
 from opentelemetry.instrumentation.aiohttp_client import AioHttpClientInstrumentor
+from opentelemetry import trace
 from opentelemetry.metrics import get_meter
 
 AioHttpClientInstrumentor().instrument()
@@ -44,13 +45,13 @@ traced_conf = {
     "tracer": service_name,
 }
 
-
+@traced(tracer  = service_name)
 async def ping_site(session, sitename):
     start = time.perf_counter()
     attrs = {"eepsite": sitename}
-    async with session.get(f"http://{sitename}") as resp:
+    async with session.get(f"http://{sitename}/") as resp:
         last_latency.set(time.perf_counter() - start, attributes=attrs)
-        status_family = resp.status_code // 100
+        status_family = resp.status // 100
         if status_family == 2:
             up_gauge.set(1, attributes=attrs)
         else:
@@ -61,11 +62,12 @@ async def collect_data(config):
     session = aiohttp.ClientSession(proxy=proxy_endpoint)
 
     while True:
-        tasks = []
-        for site in config["eepsites"]:
-            tasks.append(ping_site(session, site))
-        await asyncio.gather(*tasks)
-        await asyncio.sleep(scrape_interval_seconds)
+        with trace.get_tracer(service_name).start_as_current_span(__name__):
+            tasks = []
+            for site in config["eepsites"]:
+                tasks.append(ping_site(session, site))
+            await asyncio.gather(*tasks)
+            await asyncio.sleep(scrape_interval_seconds)
 
 
 def get_app():
