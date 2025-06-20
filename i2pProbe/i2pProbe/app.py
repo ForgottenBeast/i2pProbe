@@ -1,3 +1,4 @@
+import time
 import asyncio
 import aiohttp
 from prometheus_client import generate_latest, CONTENT_TYPE_LATEST
@@ -19,6 +20,11 @@ proxy_endpoint = "http://127.0.0.1:4444"
 scrape_interval_seconds = 30
 
 
+last_latency = get_meter(service_name).create_gauge(
+    name="i2pprobe_last_latency", unit="ms"
+)
+up_gauge = get_meter(service_name).create_gauge(name="i2pprobe_eepsite_up")
+
 app = FastAPI()
 
 
@@ -39,13 +45,25 @@ traced_conf = {
 }
 
 
+async def ping_site(session, sitename):
+    start = time.perf_counter()
+    attrs = {"eepsite": sitename}
+    async with session.get(f"http://{sitename}") as resp:
+        last_latency.set(time.perf_counter() - start, attributes=attrs)
+        status_family = resp.status_code // 100
+        if status_family == 2:
+            up_gauge.set(1, attributes=attrs)
+        else:
+            up_gauge.set(0, attributes=attrs | {"status": f"{status_family}xx"})
+
+
 async def collect_data(config):
     session = aiohttp.ClientSession(proxy=proxy_endpoint)
 
     while True:
         tasks = []
         for site in config["eepsites"]:
-            tasks.append(session.get(f"http://{site}"))
+            tasks.append(ping_site(session, site))
         await asyncio.gather(*tasks)
         await asyncio.sleep(scrape_interval_seconds)
 
