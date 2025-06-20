@@ -47,25 +47,33 @@ traced_conf = {
 
 @traced(tracer  = service_name)
 async def ping_site(session, sitename):
+    span = trace.get_current_span()
     start = time.perf_counter()
     attrs = {"eepsite": sitename}
-    async with session.get(f"http://{sitename}/") as resp:
-        last_latency.set(time.perf_counter() - start, attributes=attrs)
-        status_family = resp.status // 100
-        if status_family == 2:
-            up_gauge.set(1, attributes=attrs)
-        else:
-            up_gauge.set(0, attributes=attrs | {"status": f"{status_family}xx"})
+    span.add_event("querying site", attributes = attrs)
+    try:
+        async with session.get(f"http://{sitename}/") as resp:
+            last_latency.set(time.perf_counter() - start, attributes=attrs)
+            status_family = resp.status // 100
+            if status_family == 2:
+                up_gauge.set(1, attributes=attrs)
+            else:
+                logger.error("eepsite down", extra = attrs)
+                up_gauge.set(0, attributes=attrs)
+    except Exception as ex:
+        logger.error("error querying eepsite", extra = attrs | {"error":f"{ex}"})
+        up_gauge.set(0, attributes=attrs)
 
 
 async def collect_data(config):
     session = aiohttp.ClientSession(proxy=proxy_endpoint)
 
     while True:
-        with trace.get_tracer(service_name).start_as_current_span(__name__):
+        with trace.get_tracer(service_name).start_as_current_span(__name__) as span:
             tasks = []
             for site in config["eepsites"]:
                 tasks.append(ping_site(session, site))
+            span.add_event("starting scrape", attributes = {"sites":config["eepsites"]})
             await asyncio.gather(*tasks)
             await asyncio.sleep(scrape_interval_seconds)
 
